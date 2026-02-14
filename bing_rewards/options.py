@@ -74,6 +74,7 @@ class Config:
     ime: bool = False
     profile: list[str] = dataclasses.field(default_factory=lambda: ['Default'])
     account_select: bool = True  # Enable account selection by default
+    daily: bool = False  # Enable daily activities automation
 
 
 def parse_args() -> Namespace:
@@ -185,6 +186,12 @@ def parse_args() -> Namespace:
     p.add_argument(
         '--account-select',
         help='Enable account selection mode (login/logout before searching)',
+        action=BooleanOptionalAction,
+        default=None,
+    )
+    p.add_argument(
+        '--daily',
+        help='Complete daily activities (quizzes, polls, trivia) on Rewards dashboard',
         action=BooleanOptionalAction,
         default=None,
     )

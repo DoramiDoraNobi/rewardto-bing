@@ -20,7 +20,7 @@
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
   ]
-  dependencies = ["pynput~=1.8"]
+  dependencies = ["pynput~=1.8", "playwright>=1.40"]
 
   [project.urls]
     Source    = "https://github.com/jack-mil/bing-rewards"

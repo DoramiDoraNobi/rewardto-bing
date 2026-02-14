@@ -1046,6 +1046,38 @@ def main():
         desktop(profile)
         mobile(profile)
 
+    # ── Daily Activities (run BEFORE search to earn points first) ──
+    if options.daily and not options.dryrun:
+        print("\n" + "=" * 60)
+        print("🎯 MENJALANKAN DAILY ACTIVITIES")
+        print("=" * 60)
+
+        try:
+            from bing_rewards import daily_activities
+
+            profile_for_daily = "Default"
+            if hasattr(options, 'profile') and options.profile:
+                if isinstance(options.profile, list):
+                    profile_for_daily = options.profile[0]
+                else:
+                    profile_for_daily = options.profile
+
+            daily_activities.run(
+                browser_path=str(options.browser_path),
+                profile=profile_for_daily,
+                dryrun=options.dryrun,
+            )
+        except ImportError:
+            print("  ❌ Playwright belum terinstall!")
+            print("     Jalankan: pip install playwright")
+        except Exception as e:
+            print(f"  ❌ Error daily activities: {e}")
+
+        print("\n" + "=" * 60)
+        print("🔍 MELANJUTKAN KE SEARCH AUTOMATION")
+        print("=" * 60)
+        time.sleep(2)
+
     # Execute main method in a separate thread
     if options.desktop:
         target_func = desktop
@@ -1083,3 +1115,4 @@ def main():
     # Open rewards dashboard
     if options.open_rewards and not options.dryrun:
         webbrowser.open_new('https://account.microsoft.com/rewards')
+
