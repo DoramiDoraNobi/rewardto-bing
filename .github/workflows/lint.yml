@@ -1,0 +1,26 @@
+name: Lint
+
+on:
+  pull_request:
+    branches: master
+    paths:
+      - '**.py'
+      - pyproject.toml
+      - uv.lock
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: Run Linting
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # runs `check` using with github output format automatically
+    - name: Run ruff linting
+      uses: astral-sh/ruff-action@v3
+
+    # also check formatting
+    - name: Run ruff format
+      run: ruff format --check --diff

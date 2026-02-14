@@ -1,0 +1,68 @@
+[project]
+  name = "bing-rewards"
+  version = "3.3.0"
+  requires-python = ">=3.10"
+  description = "Perform automated Bing Rewards searches"
+  readme = "README.md"
+  license = "MIT"
+  license-files = ["LICENSE"]
+  authors = [{ name = "jack-mil", email = "62065280+jack-mil@users.noreply.github.com" }]
+  keywords = ["automation", "bing", "search", "pynput"]
+  classifiers = [
+    "Topic :: Utilities",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+  ]
+  dependencies = ["pynput~=1.8"]
+
+  [project.urls]
+    Source    = "https://github.com/jack-mil/bing-rewards"
+    Issues    = "https://github.com/jack-mil/bing-rewards/issues"
+    Changelog = "https://github.com/jack-mil/bing-rewards/blob/master/CHANGELOG.md"
+
+  # Install an executable entrypoint
+  [project.scripts]
+    bing-rewards = "bing_rewards.app:main"
+
+[build-system]
+  requires = ["uv_build>=0.8.0,<0.9.0"]
+  build-backend = "uv_build"
+
+[tool.uv.build-backend]
+  module-name = "bing_rewards"
+  module-root = "."
+  source-include = ["CHANGELOG.md"]
+
+[dependency-groups]
+  # dev dependencies picked up automatically by uv
+  dev = ["pre-commit-uv", "ruff"]
+
+[tool.ruff]
+  line-length = 101
+  format.quote-style = "single"
+  # probably too many rules, but I like to see what they do, and can always disable later
+  lint.extend-select = [
+    "A",    # https://docs.astral.sh/ruff/rules/#flake8-builtins-a
+    "B",    # https://docs.astral.sh/ruff/rules/#flake8-bugbear-b
+    "E",    # https://docs.astral.sh/ruff/rules/#pycodestyle-e-w
+    "F",    # https://docs.astral.sh/ruff/rules/#pyflakes-f
+    "I",    # https://docs.astral.sh/ruff/rules/#isort-i
+    "W",    # https://docs.astral.sh/ruff/rules/#pycodestyle-e-w
+    "N",    # https://docs.astral.sh/ruff/rules/#pep8-naming-n
+    "PTH",  # https://docs.astral.sh/ruff/rules/#flake8-use-pathlib-pth
+    "SIM",  # https://docs.astral.sh/ruff/rules/#flake8-simplify-sim
+    "ARG",  # https://docs.astral.sh/ruff/rules/#flake8-unused-arguments-arg
+    "UP",   # https://docs.astral.sh/ruff/rules/#pyupgrade-up
+    "PERF", # https://docs.astral.sh/ruff/rules/#perflint-perf
+    "PL",   # https://docs.astral.sh/ruff/rules/#pylint-pl
+    "RSE",  # https://docs.astral.sh/ruff/rules/#flake8-raise-rse
+    "RUF",  # https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
+    "TC",   # https://docs.astral.sh/ruff/rules/#flake8-type-checking-tch
+  ]
