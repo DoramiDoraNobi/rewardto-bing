@@ -6,6 +6,9 @@
 
 Handles quizzes, polls, trivia, and click-only tasks on the Rewards dashboard.
 Uses the user's existing Chrome/Edge browser — no separate Chromium download needed.
+
+Uses a DEDICATED automation profile directory (not the main browser profile)
+to avoid conflicts when the browser is already running.
 """
 
 from __future__ import annotations
@@ -423,9 +426,15 @@ async def run_daily_activities(
 ) -> int:
     """Main entry point for daily activities automation.
 
+    Uses a DEDICATED automation profile directory (not the main browser profile)
+    to avoid conflicts when the browser is already running.
+
+    On first run, the user needs to login to Microsoft once.
+    After that, the session is saved and reused automatically.
+
     Args:
         browser_path: Path to Chrome/Edge executable. Auto-detected if empty.
-        profile: Browser profile directory name.
+        profile: Browser profile directory name (unused, kept for API compat).
         headless: Run browser in headless mode (not recommended for Rewards).
         dryrun: If True, detect activities but don't complete them.
 
@@ -458,21 +467,29 @@ async def run_daily_activities(
         return 0
 
     print(f"  🌐 Menggunakan: {browser_path}")
-    print(f"  👤 Profile: {profile}")
 
     completed = 0
 
     async with async_playwright() as p:
         try:
-            # Get user data directory for the browser profile
-            user_data_dir = _get_user_data_dir(browser_path, profile)
+            # Use a DEDICATED automation profile (not the main browser profile!)
+            # This avoids "Opening in existing browser session" conflicts
+            bot_data_dir = _get_bot_data_dir()
+            first_run = not bot_data_dir.exists() or not any(bot_data_dir.iterdir())
 
-            print(f"  📁 User data: {user_data_dir}")
+            bot_data_dir.mkdir(parents=True, exist_ok=True)
+
+            if first_run:
+                print(f"\n  🆕 PERTAMA KALI — perlu login ke Microsoft Account")
+                print(f"  📁 Profile bot disimpan di: {bot_data_dir}")
+            else:
+                print(f"  📁 Bot profile: {bot_data_dir}")
+
             print(f"  🚀 Membuka browser...\n")
 
-            # Launch with persistent context to reuse the user's login session
+            # Launch with persistent context using dedicated bot profile
             context = await p.chromium.launch_persistent_context(
-                user_data_dir=str(user_data_dir),
+                user_data_dir=str(bot_data_dir),
                 executable_path=browser_path,
                 headless=headless,
                 args=[
@@ -495,13 +512,27 @@ async def run_daily_activities(
             # Check if logged in
             logged_in = await _check_login(page)
             if not logged_in:
-                print("\n  ⚠️ Sepertinya belum login ke Microsoft Account!")
-                print("  💡 Login dulu di browser, lalu jalankan ulang.")
-                await context.close()
-                return 0
+                print("\n  ⚠️  Belum login ke Microsoft Account!")
+                print("  � Silakan login di jendela browser yang terbuka...")
+                print("     Setelah login, tekan ENTER di sini untuk lanjut.\n")
+
+                # Wait for user to login manually
+                await asyncio.get_event_loop().run_in_executor(None, input)
+
+                # Re-navigate after login
+                await page.goto(REWARDS_URL, wait_until="domcontentloaded", timeout=30000)
+                await _random_delay(3.0, 5.0)
+
+                logged_in = await _check_login(page)
+                if not logged_in:
+                    print("  ❌ Masih belum login. Coba jalankan ulang.")
+                    await context.close()
+                    return 0
+
+                print("  ✅ Login berhasil! Session disimpan untuk lain kali.\n")
 
             # Detect available activities
-            print("\n  🔍 Mendeteksi daily activities...")
+            print("  🔍 Mendeteksi daily activities...")
             activities = await detect_activities(page)
 
             if not activities:
@@ -558,13 +589,6 @@ async def run_daily_activities(
 async def _check_login(page: Page) -> bool:
     """Check if user is logged into Microsoft account."""
     try:
-        # Look for sign-in indicators
-        # If we find a sign-in button, user is NOT logged in
-        sign_in = await page.query_selector(
-            "a[href*='login'], [class*='signIn'], [class*='SignIn'], "
-            "#id_l, [id*='signin']"
-        )
-
         # Look for user avatar/name (indicates logged in)
         user_element = await page.query_selector(
             "#id_n, [class*='user-name'], [class*='mectrl_profilepic'], "
@@ -580,6 +604,12 @@ async def _check_login(page: Page) -> bool:
             "point" in content.lower() or "poin" in content.lower()
         ):
             return True
+
+        # Look for sign-in indicators (if found, NOT logged in)
+        sign_in = await page.query_selector(
+            "a[href*='login'], [class*='signIn'], [class*='SignIn'], "
+            "#id_l, [id*='signin']"
+        )
 
         return sign_in is None
 
@@ -642,27 +672,20 @@ async def _detect_alternative(page: Page) -> list[Activity]:
     return activities
 
 
-def _get_user_data_dir(browser_path: str, profile: str = "Default") -> Path:
-    """Get the user data directory for the browser.
+def _get_bot_data_dir() -> Path:
+    """Get a DEDICATED user data directory for the automation bot.
 
-    This allows Playwright to reuse the user's existing login session.
+    This is separate from the user's main browser profile to avoid
+    conflicts when the browser is already running.
+
+    Location: %LOCALAPPDATA%/BingRewardsBot/User Data
     """
     import os
 
-    browser_path_lower = browser_path.lower()
     localappdata = Path(
         os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local")
     )
-
-    if "msedge" in browser_path_lower or "edge" in browser_path_lower:
-        return localappdata / "Microsoft" / "Edge" / "User Data"
-    elif "brave" in browser_path_lower:
-        return localappdata / "BraveSoftware" / "Brave-Browser" / "User Data"
-    elif "chrome" in browser_path_lower:
-        return localappdata / "Google" / "Chrome" / "User Data"
-    else:
-        # Default to Chrome
-        return localappdata / "Google" / "Chrome" / "User Data"
+    return localappdata / "BingRewardsBot" / "User Data"
 
 
 def run(
